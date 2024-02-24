@@ -1,8 +1,6 @@
-Interpretation of instructions: I have interpreted the instructions as 
-requesting both a summary and a review of the paper. 
-
 SUMMARY: 
 
+[TODO] Summary
 
 REVIEW:
 
