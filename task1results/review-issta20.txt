@@ -1,0 +1,61 @@
+Interpretation of instructions: I have interpreted the instructions as 
+requesting both a summary and a review of the paper. 
+
+SUMMARY: 
+
+
+REVIEW:
+
+Title: Detecting Flaky Tests in Probabilistic and Machine Learning Applications
+Authors: Saikat Dutta, August Shi, Rutvik Choudhary, Zhekun Zhang, Aryaman Jain, 
+Sasa Misailovic
+Published in: ISSTA 2020 - 29th ACM SIGSOFT International Symposium on Software 
+Testing and Analysis
+
+Q: What is your take-away message from this paper?
+
+A: 
+
+Q: What is the motivation for this work (both people problem and technical 
+problem), and its distillation into a research question? Why doesn’t the people 
+problem have a trivial solution? What are the previous solutions and why are 
+they inadequate?
+
+A: 
+
+Q: FSE 2014: Proceedings of the 22nd ACM SIGSOFT International Symposium on 
+Foundations of Software Engineering
+
+A: 
+
+Q: What is the author’s evaluation of the solution? What logic, argument, 
+evidence, artifacts (e.g., a proof-of-concept system), or experiments are 
+presented in support of the idea?
+
+A: 
+
+Q: What is your analysis of the identified problem, idea and evaluation? Is this 
+a good idea? What flaws do you perceive in the work? What are the most 
+interesting or controversial ideas? For work that has practical implications, 
+ask whether this will work, who would want it, what it will take to give it to 
+them, and when might it become a reality?
+
+A: 
+
+Q: What are the paper’s contributions (author’s and your opinion)? Ideas, 
+methods, software, experimental results, experimental techniques...?
+
+A: 
+
+Q: What are future directions for this research (author’s and yours, perhaps 
+driven by shortcomings or other critiques)?
+
+A: 
+
+Q: What questions are you left with? What questions would you like to raise in 
+an open discussion of the work (review interesting and controversial points, 
+above)? What do you find difficult to understand? List as many as you can, at
+least three, not including questions that can be answered quickly by searching 
+the internet.
+
+A: 
