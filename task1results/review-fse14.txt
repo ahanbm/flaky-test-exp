@@ -1,7 +1,3 @@
-SUMMARY: 
-
-[TODO] Summary 
-
 REVIEW:
 
 Title: An Empirical Analysis of Flaky Tests
@@ -11,25 +7,49 @@ Symposium on Foundations of Software Engineering
 
 Q: What is your take-away message from this paper?
 
-A: 
+A: Flaky tests are widespread, bad and should be avoided if possible. There are 
+several root causes like async wait, concurrency, and test order dependency. 
+Specific fixes exist tailored to each cause, for example using waitFor calls 
+(Async Wait) and adding locks (concurrency).
 
 Q: What is the motivation for this work (both people problem and technical 
 problem), and its distillation into a research question? Why doesn’t the people 
 problem have a trivial solution? What are the previous solutions and why are 
 they inadequate?
 
-A: 
+A: The motivation for this work is that flaky tests are widespread. 
+Furthermore, the authors make it clear why flaky tests are potentially bad
+(may undermine the value of regression tests). The people problem doesn't have
+a trivial solution because identifying flaky tests in the first place is
+non-trivial and many open source developers are not aware of relevant methods. 
+The technical problem is non-trivial because there are many different causes
+of flaky tests and don't have a one size fits all solution. There aren't
+relevant previous works even if there are previous solutions because this is
+said to be the first wide scale analysis of flaky tests.  
 
-Q: FSE 2014: Proceedings of the 22nd ACM SIGSOFT International Symposium on 
-Foundations of Software Engineering
+Q: What is the proposed solution (hypothesis, idea, design)? Why is it believed 
+it will work? How does it represent an improvement? How is the solution achie
 
-A: 
+A: There is no one solution, but rather a battery of solutions. The most
+general way of thinking about it is that the paper believes that thoroughly
+testing for flakiness before adding tests can improe the quality of test suits. 
+More specifically, to detect flakiness in test suites that already exist the
+paper proposes several techniques tailored to the problem and situation. 
 
 Q: What is the author’s evaluation of the solution? What logic, argument, 
 evidence, artifacts (e.g., a proof-of-concept system), or experiments are 
 presented in support of the idea?
 
-A: 
+A: The author analyzes 201 commits from a wide variety of open source projects
+(51) from different programming languages and creators. The evidence of
+flakiness is direct, specifically the commit messages mentioned "intermit" or
+"flak". The logic of each countermeasure is justifies seperately with respect
+to the root cause. In particular, waitFor calls and sleep calls are identified
+as common emperical solutions to async wait issues. Similarly, adding locks and
+making code determinisitic are common solutions to concurrency issues. Setting
+up states is identified as a solution as a fix for test order dependency with
+empirical evidence. The paper also manually experiments with the commits 
+(through analysis and testing) to determine if they actually fix flaky tests. 
 
 Q: What is your analysis of the identified problem, idea and evaluation? Is this 
 a good idea? What flaws do you perceive in the work? What are the most 
@@ -37,17 +57,42 @@ interesting or controversial ideas? For work that has practical implications,
 ask whether this will work, who would want it, what it will take to give it to 
 them, and when might it become a reality?
 
-A: 
+A: I think this is a good idea, now that I know more about the negative
+effects of flaky tests it seems clear that test suite developers should at
+least know about such tests in their system. I think one flaw is the idea of
+platform independence. Specifically it is a very short section and the author's
+don't explain how they determine whether something is platform independent (a 
+very strong claim since there are so many different platforms). I think the
+idea of potentially removing most flaky tests could be controversial because
+it would require a significant amount of work to fix which may not be preferred
+over running the tests multiple times as stated in the introduction. I think
+this will work, software engineers wold be interested, it would take a
+packaged framework for widespread use, and I'n unsure when it might become a
+reality but I assume it already has. 
 
 Q: What are the paper’s contributions (author’s and your opinion)? Ideas, 
 methods, software, experimental results, experimental techniques...?
 
-A: 
+A: The paper claims it is the first large scale analysis of flaky tests, and
+I agree. In terms of ideas the paper simulatneously develops several
+techniques for identifying and managing flaky tests, and I believe all of them
+are useful. The specific software used isn't open source so I can't comment
+on the contribution. On the topic of specific results and techniques I think
+the paper is well-documented and the only shortcoming I would say is that
+there could have been more commits analyzed and better quantitfication on the 
+number of flaky tests. 
 
 Q: What are future directions for this research (author’s and yours, perhaps 
 driven by shortcomings or other critiques)?
 
-A: 
+A: The authors suggest future directions at the end of the conclusion: 
+"there are broad enough categories for which it should be feasible to develop 
+automated solutions to manifest, debug, and fix flaky tests". The biggest
+future direction I see would be to develop ways to automate fixing of flaky
+tests. It seems like a proposed solution can be tested using the same software
+used to evaluate flaky tests in the first place. Related to this, it would
+be interesting to see the paper scaled up to an industrial level (i.e. 
+hundreds of thousands of tests or more).
 
 Q: What questions are you left with? What questions would you like to raise in 
 an open discussion of the work (review interesting and controversial points, 
@@ -55,4 +100,12 @@ above)? What do you find difficult to understand? List as many as you can, at
 least three, not including questions that can be answered quickly by searching 
 the internet.
 
-A: 
+A: I am left wondering how many tests were fixed by each commit and whether
+the number of tests per fixed commit was highest for async wait, concurrency, 
+test order dependency, or something else. I would be interested in analyzing
+the negatives of current flaky testing quantitatively for example in lost hours
+of QA engineer time or additional vulnerabilities in code. I would also ask
+how the IO flaky tests failures are identified since the paper suggested that
+any test that relies on external resources will be flaky but it seems to me
+like if an external resource isn't available when expected that it's a bug
+in the system. 
