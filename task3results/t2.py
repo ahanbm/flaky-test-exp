@@ -1,6 +1,7 @@
 import importlib.util
 import numpy as np
 import types
+import ast
 
 def execute_test(file_name, test_name, assertion_line):
     spec = importlib.util.spec_from_file_location(test_name, file_name)
@@ -45,10 +46,10 @@ def inject_seed_setting(test_code_ast, test_module):
     new_function = types.FunctionType(
         new_code,
         test_module.__dict__,
-        test_name
+        "test_name"
     )
     
     return new_function
 
 if __name__ == "__main__":
-    execute_test("test_file.py", "test_function", "assertion_line")
+    execute_test("assertions.py", "func2", 10)
