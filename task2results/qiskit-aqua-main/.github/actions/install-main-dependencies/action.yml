@@ -1,0 +1,36 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+name: 'Install Qiskit Aqua Main Dependencies'
+description: 'Installs Python dependencies from Main'
+inputs:
+  domain:
+    description: 'Domain'
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Install Dependencies from Main
+      env:
+        DISABLE_CONAN: 1
+      run: |
+        if [ "${{ inputs.domain }}" == "chemistry" ]; then
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate psi4env
+        fi
+        pip install git+https://github.com/Qiskit/qiskit-terra
+        pip install git+https://github.com/Qiskit/qiskit-ignis
+        sudo apt-get -y install nlohmann-json3-dev
+        sudo apt-get -y install libspdlog-dev
+        sudo apt-get -y install libmuparserx-dev
+        pip install git+https://github.com/Qiskit/qiskit-aer
+      shell: bash

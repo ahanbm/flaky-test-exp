@@ -1,0 +1,493 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2020, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+name: Aqua Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'stable/**'
+  pull_request:
+    branches:
+      - main
+      - 'stable/**'
+  schedule:
+    # run every day at 1AM
+    - cron: '0 1 * * *'
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  Checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+    steps:
+      - name: Print Concurrency Group
+        env:
+          CONCURRENCY_GROUP: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+        run: |
+          echo -e "\033[31;1;4mConcurrency Group\033[0m"
+          echo -e "$CONCURRENCY_GROUP\n"
+        shell: bash
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Install Dependencies
+        run: |
+          pip install jupyter sphinx_rtd_theme qiskit-terra[visualization]
+          sudo apt-get -y install pandoc graphviz
+          sudo apt-get -y install python3-enchant
+          sudo apt-get -y install hunspell-en-us
+          pip install pyenchant
+        shell: bash
+      - run:  pip check
+        if: ${{ !cancelled() }}
+        shell: bash
+      - run:  make copyright
+        if: ${{ !cancelled() }}
+        shell: bash
+      - run:  make spell
+        if: ${{ !cancelled() }}
+        shell: bash
+      - run:  make style
+        if: ${{ !cancelled() }}
+        shell: bash
+      - name: Run make html
+        run:  |
+          make html SPHINXOPTS=-W
+          cd docs/_build/html
+          mkdir artifacts
+          tar -zcvf artifacts/documentation.tar.gz --exclude=./artifacts .
+        if: ${{ !cancelled() }}
+        shell: bash
+      - name: Run upload documentation
+        uses: actions/upload-artifact@v2
+        with:
+          name: documentation
+          path: docs/_build/html/artifacts/documentation.tar.gz
+        if: ${{ !cancelled() }}
+      - run:  make doctest
+        if: ${{ !cancelled() }}
+        shell: bash
+  Lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - run: make lint
+        if: ${{ !cancelled() }}
+        shell: bash
+      - run: make mypy
+        if: ${{ !cancelled() }}
+        shell: bash
+  Aqua:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Aqua Unit Tests under Python ${{ matrix.python-version }}
+        uses: ./.github/actions/run-tests
+        with:
+          domain: aqua
+          event-name: ${{ github.event_name }}
+          python-version: ${{ matrix.python-version }}
+      - name: Deprecation Messages
+        run: |
+          mkdir ./a${{ matrix.python-version }}
+          python tools/extract_deprecation.py -file out.txt -output ./a${{ matrix.python-version }}/aqua.dep
+        shell: bash
+      - name: Coverage combine
+        run: |
+          coverage3 combine
+          mv .coverage ./a${{ matrix.python-version }}/aqua.dat
+        if: ${{ matrix.python-version == 3.7 }}
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: aqua${{ matrix.python-version }}
+          path: ./a${{ matrix.python-version }}/*
+  Chemistry:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Create conda environment
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda create -n psi4env python=${{ matrix.python-version }}
+        shell: bash
+      - uses: ./.github/actions/install-psi4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        with:
+          domain: chemistry
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+        with:
+          domain: chemistry
+      - name: Install Dependencies
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate psi4env
+          pip install -U Cython
+          pip install git+https://github.com/rpmuller/pyquante2
+        if: ${{ matrix.python-version < 3.9 }}
+        shell: bash
+      - name: Chemistry Unit Tests under Python ${{ matrix.python-version }}
+        uses: ./.github/actions/run-tests
+        with:
+          domain: chemistry
+          event-name: ${{ github.event_name }}
+          python-version: ${{ matrix.python-version }}
+      - name: Deprecation Messages
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate psi4env
+          mkdir ./c${{ matrix.python-version }}
+          python tools/extract_deprecation.py -file out.txt -output ./c${{ matrix.python-version }}/chem.dep
+        shell: bash
+      - name: Coverage combine
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate psi4env
+          coverage3 combine
+          mv .coverage ./c${{ matrix.python-version }}/chem.dat
+        if: ${{ matrix.python-version == 3.7 }}
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: chemistry${{ matrix.python-version }}
+          path: ./c${{ matrix.python-version }}/*
+  Finance:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Finance Unit Tests under Python ${{ matrix.python-version }}
+        uses: ./.github/actions/run-tests
+        with:
+          domain: finance
+          event-name: ${{ github.event_name }}
+          python-version: ${{ matrix.python-version }}
+      - name: Deprecation Messages
+        run: |
+          mkdir ./f${{ matrix.python-version }}
+          python tools/extract_deprecation.py -file out.txt -output ./f${{ matrix.python-version }}/fin.dep
+        shell: bash
+      - name: Coverage combine
+        run: |
+          coverage3 combine
+          mv .coverage ./f${{ matrix.python-version }}/fin.dat
+        if: ${{ matrix.python-version == 3.7 }}
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: finance${{ matrix.python-version }}
+          path: ./f${{ matrix.python-version }}/*
+  MachineLearning:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Machine Learning Unit Tests under Python ${{ matrix.python-version }}
+        uses: ./.github/actions/run-tests
+        with:
+          domain: ml
+          event-name: ${{ github.event_name }}
+          python-version: ${{ matrix.python-version }}
+      - name: Deprecation Messages
+        run: |
+          mkdir ./m${{ matrix.python-version }}
+          python tools/extract_deprecation.py -file out.txt -output ./m${{ matrix.python-version }}/ml.dep
+        shell: bash
+      - name: Coverage combine
+        run: |
+          coverage3 combine
+          mv .coverage ./m${{ matrix.python-version }}/ml.dat
+        if: ${{ matrix.python-version == 3.7 }}
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ml${{ matrix.python-version }}
+          path: ./m${{ matrix.python-version }}/*
+  Optimization:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Optimization Unit Tests under Python ${{ matrix.python-version }}
+        uses: ./.github/actions/run-tests
+        with:
+          domain: optimization
+          event-name: ${{ github.event_name }}
+          python-version: ${{ matrix.python-version }}
+      - name: Deprecation Messages
+        run: |
+          mkdir ./o${{ matrix.python-version }}
+          python tools/extract_deprecation.py -file out.txt -output ./o${{ matrix.python-version }}/opt.dep
+        shell: bash
+      - name: Coverage combine
+        run: |
+          coverage3 combine
+          mv .coverage ./o${{ matrix.python-version }}/opt.dat
+        if: ${{ matrix.python-version == 3.7 }}
+        shell: bash
+      - uses: actions/upload-artifact@v2
+        with:
+          name: optimization${{ matrix.python-version }}
+          path: ./o${{ matrix.python-version }}/*
+  Tutorials:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: ./.github/actions/install-main-dependencies
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+      - uses: ./.github/actions/install-aqua
+      - name: Install Dependencies
+        run: |
+          pip install jupyter sphinx_rtd_theme qiskit-terra[visualization]
+          sudo apt-get install -y pandoc graphviz
+          pip install qiskit-terra[classical-function-compiler]
+        shell: bash
+      - name: Install Migration Dependencies from main
+        if: ${{ !startsWith(github.ref, 'refs/heads/stable') && !startsWith(github.base_ref, 'stable/') }}
+        run: |
+          pip install git+https://github.com/Qiskit/qiskit-optimization
+          pip install git+https://github.com/Qiskit/qiskit-machine-learning/
+          pip install git+https://github.com/Qiskit/qiskit-finance
+          pip install git+https://github.com/Qiskit/qiskit-nature
+        shell: bash
+      - name: Install Migration Dependencies from pypi
+        if: ${{ startsWith(github.ref, 'refs/heads/stable') || startsWith(github.base_ref, 'stable/') }}
+        run: |
+          pip install qiskit-optimization qiskit-machine-learning qiskit-finance qiskit-nature
+        shell: bash
+      - name: Run Qiskit Migration Tutorials
+        env:
+          QISKIT_PARALLEL: False
+          QISKIT_DOCS_BUILD_TUTORIALS: 'always'
+        run: |
+          make html SPHINXOPTS=-W
+          cd docs/_build/html
+          mkdir artifacts
+          tar -zcvf artifacts/tutorials.tar.gz --exclude=./artifacts .
+        shell: bash
+      - name: Run upload migration tutorials
+        uses: actions/upload-artifact@v2
+        with:
+          name: migration-tutorials${{ matrix.python-version }}
+          path: docs/_build/html/artifacts/tutorials.tar.gz
+      - name: Run qiskit-tutorials
+        env:
+          QISKIT_PARALLEL: False
+        run: |
+          pip install 'matplotlib<3.3.0'
+          git clone https://github.com/Qiskit/qiskit-tutorials
+          cd qiskit-tutorials
+          git checkout stable/0.25.x
+          rm -r tutorials/circuits/
+          rm -r tutorials/circuits_advanced/
+          rm -r tutorials/noise/
+          rm -r tutorials/simulators/
+          sphinx-build -b html . _build/html
+          cd _build/html
+          mkdir artifacts
+          tar -zcvf artifacts/tutorials.tar.gz --exclude=./artifacts .
+        shell: bash
+      - name: Run upload qiskit-tutorials
+        uses: actions/upload-artifact@v2
+        with:
+          name: qiskit-tutorials${{ matrix.python-version }}
+          path: ./qiskit-tutorials/_build/html/artifacts/tutorials.tar.gz
+  Deprecation_Messages_and_Coverage:
+    needs: [Checks, Lint, Aqua, Chemistry, Finance, MachineLearning, Optimization, Tutorials]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v2
+        with:
+          name: aqua3.6
+          path: /tmp/a36
+      - uses: actions/download-artifact@v2
+        with:
+          name: aqua3.7
+          path: /tmp/a37
+      - uses: actions/download-artifact@v2
+        with:
+          name: aqua3.8
+          path: /tmp/a38
+      - uses: actions/download-artifact@v2
+        with:
+          name: aqua3.9
+          path: /tmp/a39
+      - uses: actions/download-artifact@v2
+        with:
+          name: chemistry3.6
+          path: /tmp/c36
+      - uses: actions/download-artifact@v2
+        with:
+          name: chemistry3.7
+          path: /tmp/c37
+      - uses: actions/download-artifact@v2
+        with:
+          name: chemistry3.8
+          path: /tmp/c38
+      - uses: actions/download-artifact@v2
+        with:
+          name: chemistry3.9
+          path: /tmp/c39
+      - uses: actions/download-artifact@v2
+        with:
+          name: finance3.6
+          path: /tmp/f36
+      - uses: actions/download-artifact@v2
+        with:
+          name: finance3.7
+          path: /tmp/f37
+      - uses: actions/download-artifact@v2
+        with:
+          name: finance3.8
+          path: /tmp/f38
+      - uses: actions/download-artifact@v2
+        with:
+          name: finance3.9
+          path: /tmp/f39
+      - uses: actions/download-artifact@v2
+        with:
+          name: ml3.6
+          path: /tmp/m36
+      - uses: actions/download-artifact@v2
+        with:
+          name: ml3.7
+          path: /tmp/m37
+      - uses: actions/download-artifact@v2
+        with:
+          name: ml3.8
+          path: /tmp/m38
+      - uses: actions/download-artifact@v2
+        with:
+          name: ml3.9
+          path: /tmp/m39
+      - uses: actions/download-artifact@v2
+        with:
+          name: optimization3.6
+          path: /tmp/o36
+      - uses: actions/download-artifact@v2
+        with:
+          name: optimization3.7
+          path: /tmp/o37
+      - uses: actions/download-artifact@v2
+        with:
+          name: optimization3.8
+          path: /tmp/o38
+      - uses: actions/download-artifact@v2
+        with:
+          name: optimization3.9
+          path: /tmp/o39
+      - name: Install Dependencies
+        run: pip install -U coverage coveralls diff-cover
+        shell: bash
+      - name: Combined Deprecation Messages
+        run: |
+          sort -f -u \
+          /tmp/a36/aqua.dep /tmp/a37/aqua.dep /tmp/a38/aqua.dep /tmp/a39/aqua.dep \
+          /tmp/c36/chem.dep /tmp/c37/chem.dep /tmp/c38/chem.dep /tmp/c39/chem.dep \
+          /tmp/f36/fin.dep  /tmp/f37/fin.dep  /tmp/f38/fin.dep  /tmp/f39/fin.dep \
+          /tmp/m36/ml.dep   /tmp/m37/ml.dep   /tmp/m38/ml.dep   /tmp/m39/ml.dep \
+          /tmp/o36/opt.dep  /tmp/o37/opt.dep  /tmp/o38/opt.dep  /tmp/o39/opt.dep || true
+        shell: bash
+      - name: Coverage combine
+        run: coverage3 combine /tmp/a37/aqua.dat /tmp/c37/chem.dat /tmp/f37/fin.dat /tmp/m37/ml.dat /tmp/o37/opt.dat
+        shell: bash
+      - name: Upload to Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: coveralls --service=github
+        shell: bash
