@@ -84,7 +84,7 @@ class Instrumentor:
                 (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
 
         # Write the modified code to a new file
-        with open(test_file[:-3] + "_instrumented2.py", 'w') as output_file:
+        with open(test_file[:-9] + "_final.py", 'w') as output_file:
             output_file.write(astunparse.unparse(tree))
 
     def execute_test(self, file_name, test_name):
@@ -92,10 +92,14 @@ class Instrumentor:
         test_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(test_module)
 
-        test_function = getattr(test_module, test_name)
-        test_function()
+        test_function = getattr(test_module.Tests, test_name, None)
+        if test_function is not None and callable(test_function):
+            test_instance = test_module.Tests()
+            test_function(test_instance)
+        else:
+            print(f"Error: Test function '{test_name}' not found in module '{file_name}'.")
 
 if __name__ == "__main__":
     instrumentor = Instrumentor()
-    instrumentor.instrument_assertion("task3results/assertions.py", "func2")
-    instrumentor.execute_test("task3results/assertions.py", "func2")
+    instrumentor.instrument_assertion("task3results/assertions_logged.py", "test_func2")
+    instrumentor.execute_test("task3results/assertions_logged.py", "test_func2")
