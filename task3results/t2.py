@@ -101,5 +101,5 @@ class Inst:
 
 if __name__ == "__main__":
     instrumentor = Inst()
-    instrumentor.instrument_assertion("task3results/assertions_logged.py", "test_func2")
-    instrumentor.execute_test("task3results/assertions_logged.py", "test_func2")
+    instrumentor.instrument_assertion("task3results/assertions_logged.py", "test_func")
+    instrumentor.execute_test("task3results/assertions_logged.py", "test_func")
