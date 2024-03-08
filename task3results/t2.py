@@ -2,7 +2,7 @@ import importlib.util
 import ast
 import astunparse
 
-class Instrumentor:
+class Inst:
     def numpy_used(self, stmt):
         if isinstance(stmt, ast.Assign):
             # Check if the value being assigned is a function call
@@ -84,7 +84,7 @@ class Instrumentor:
                 (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
 
         # Write the modified code to a new file
-        with open(test_file[:-9] + "_final.py", 'w') as output_file:
+        with open(test_file[:-9] + "final.py", 'w') as output_file:
             output_file.write(astunparse.unparse(tree))
 
     def execute_test(self, file_name, test_name):
@@ -100,6 +100,6 @@ class Instrumentor:
             print(f"Error: Test function '{test_name}' not found in module '{file_name}'.")
 
 if __name__ == "__main__":
-    instrumentor = Instrumentor()
+    instrumentor = Inst()
     instrumentor.instrument_assertion("task3results/assertions_logged.py", "test_func2")
     instrumentor.execute_test("task3results/assertions_logged.py", "test_func2")
