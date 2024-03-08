@@ -92,15 +92,16 @@ class AssertSpecFinder:
             for assertion_data in self.assertions:
                 writer.writerow(assertion_data)
 
+    def run(self, library):
+        self.find_assertions(library)
+        self.output_to_csv()
+
 if __name__ == "__main__":
     finder = AssertSpecFinder("qiskit")
-    finder.find_assertions("task2results/qiskit-aqua-main/")
-    finder.output_to_csv()
+    finder.run("task2results/qiskit-aqua-main/")
 
     finder = AssertSpecFinder("tensorflow")
-    finder.find_assertions("task2results/tensor2tensor-master/")
-    finder.output_to_csv()
+    finder.run("task2results/tensor2tensor-master/")
 
     finder = AssertSpecFinder("pytorch")
-    finder.find_assertions("task2results/vision-main/")
-    finder.output_to_csv()
+    finder.run("task2results/vision-main/")
