@@ -1,0 +1,34 @@
+Q1. How many assertions did you find in each project?
+
+A: For the qiskit library, I found 1435 assertions. For the tensorflow library
+I found 26 assertions. For the pytorch library I found 155 assertions. 
+
+Q2. How do you validate if the tool correctly finds all assertions?
+
+I didn't verify any of the coverage explicitly as there are far too many files
+to look through to achieve comprehensive coverage. I chose to look at a few
+files and corresponding assertions for each project as a sanity check but the
+main thing I did while developing the tool was to maintain a small test
+library where I added tests I thought might fail (test-driven development). 
+It was in tester/testing.py, it has been deleted now for concision but it can 
+be viewed through previous commit history. 
+
+Q3. Did your tool miss any assertions? If yes, explain why.
+
+I do not know the answer to this for my current version. I know for previous
+verions I did miss assertions for example not supporting all types of asserts
+like assertTrue, and not accounting for calling other functions with assertions. 
+
+Q4. What were the key challenges that you faced in your implementation? How did 
+you solve them?
+
+Q: In your report, please point out how you handled these challenges!
+
+All of the challenges listed here can be solved with recursion. The heavy work
+is done entirely in "is_approx_assertion". In particular, there has to be an 
+assert somewhere. Basically the wrinkles that are added is that the asserts 
+don't have to be at the statement level but could be inside if it is a function 
+call (in which case we recursively call "is_approx_assertion" on each
+statement of the function) or the asserts could be at a higher level through
+inheritance in which case we use built in ast library method to obtain the
+parent implementations and again recursively call "is_approx_assertion". 

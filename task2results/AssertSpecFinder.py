@@ -14,23 +14,36 @@ class AssertSpecFinder:
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     for statement in node.body:
-                        if self.is_approx_assertion(statement):
-                            assertion_string = astunparse.unparse(statement).strip()
-                            self.assertions.append({
-                                'filepath': filepath,
-                                'testclass': node.name if hasattr(node, 'name') else '',
-                                'testname': node.name,
-                                'assertion type': 'approximate',
-                                'line number': statement.lineno,
-                                'assert string': assertion_string
-                            })
+                        assert_type = self.is_approx_assertion(statement)
+                        if self.is_valid(assert_type):
+                                assertion_string = astunparse.unparse(statement).strip()
+                                self.assertions.append({
+                                    'filepath': filepath,
+                                    'testclass': node.name if hasattr(node, 'name') else '',
+                                    'testname': node.name,
+                                    'assertion type': assert_type,
+                                    'line number': statement.lineno,
+                                    'assert string': assertion_string
+                                })
+
+    def is_valid(self, assert_type):
+        return assert_type and (assert_type == "assert expr < | > | <= | >= threshold" or 
+                assert_type == "assertTrue" or assert_type == "assertFalse" or 
+                assert_type == "assert_almost_equal" or assert_type == "assertGreater" or 
+                assert_type == "assertGreaterEqual" or assert_type == "assertLess" or 
+                assert_type == "assertLessEqual" or assert_type == "assertNotAlmostEqual" or 
+                assert_type == "assertNotEqual" or assert_type == "assertNotRegex" or 
+                assert_type == "assertRegex" or assert_type == "assertApproxRegex" or
+                assert_type == "assert_approx_equal", assert_type == "assert_array_almost_equal" or
+                assert_type == "assert_all_close" or assert_type == "assert_array_less" or
+                assert_type == "assertAllClose")
 
     def is_approx_assertion(self, assert_node):
         if isinstance(assert_node, ast.Assert):
             if isinstance(assert_node.test, ast.Compare):
                 for op in assert_node.test.ops:
                     if not isinstance(op, ast.Eq): 
-                        return True
+                        return "assert expr < | > | <= | >= threshold"
         
         if isinstance(assert_node, ast.Expr):
             if isinstance(assert_node.value, ast.Call):
@@ -39,8 +52,21 @@ class AssertSpecFinder:
                     attr_node = call_node.func
                     if isinstance(attr_node.value, ast.Name) and attr_node.value.id == 'self':
                         if isinstance(attr_node.attr, str) and attr_node.attr.startswith('assert'):
-                            return True
-        return False
+                            return attr_node.attr
+                        
+        elif isinstance(assert_node, ast.FunctionDef):
+            for stmt in assert_node.body:
+                result = self.is_approx_assertion(stmt)
+                if result:
+                    return result
+                
+        elif isinstance(assert_node, ast.ClassDef):
+            for base in assert_node.bases:
+                result = self.is_approx_assertion(base)
+                if result:
+                    return result
+            
+        return None
 
 
     def find_assertions(self, directory):
@@ -68,7 +94,7 @@ class AssertSpecFinder:
 
 if __name__ == "__main__":
     finder = AssertSpecFinder("qiskit")
-    finder.find_assertions("task2results/qiskit-aqua-main/test/")
+    finder.find_assertions("task2results/qiskit-aqua-main/")
     finder.output_to_csv()
 
     finder = AssertSpecFinder("tensorflow")
@@ -76,5 +102,5 @@ if __name__ == "__main__":
     finder.output_to_csv()
 
     finder = AssertSpecFinder("pytorch")
-    finder.find_assertions("task2results/vision-main/test")
+    finder.find_assertions("task2results/vision-main/")
     finder.output_to_csv()

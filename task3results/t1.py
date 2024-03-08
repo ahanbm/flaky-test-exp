@@ -1,7 +1,7 @@
 import ast
 import astunparse
 
-class Instrumentor:
+class Inst:
     def instrument_assertion(self, test_file, test_name, assertion_line):
         with open(test_file, 'r') as file:
             tree = ast.parse(file.read())
@@ -36,7 +36,6 @@ class Instrumentor:
                 variables.add(sub_node)
         return variables
 
-# Usage example
 if __name__ == "__main__":
-    instrumentor = Instrumentor()
+    instrumentor = Inst()
     instrumentor.instrument_assertion("task3results/assertions.py", "test_func", 8)
