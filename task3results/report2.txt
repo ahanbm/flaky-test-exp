@@ -1,6 +1,0 @@
-I was unsure whether we should manually specify the assertion lines, 
-test functions, and file names and run the code 10 seperate times. I chose to
-do so but it would be simple to automate everything by removing the checks
-for file name, function name, and line numbers, since my functions already
-traverse all of the code in all of the files of the given directory. 
-

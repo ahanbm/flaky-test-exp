@@ -25,16 +25,7 @@ class Instrumentor:
                         log_statement = ast.Expr(value=
                             ast.Call(func=ast.Name(id='print', ctx=ast.Load()),
                                      args=[ast.Constant("log>>>", kind=None), variable],
-                                     keywords=[], 
-                                     _str="hello")) 
-                        
-                        '''
-                        log_statement = ast.Expr(value=ast.Call(
-                            func=ast.Name(id='print', ctx=ast.Load()),  
-                            args=[ast.Constant(value='Hello, world!', kind=None)], 
-                            keywords=[],
-                        ))
-                        '''
+                                     keywords=[])) 
 
                         test_function.body.insert(test_function.body.index(statement), log_statement)
                     break
@@ -55,5 +46,4 @@ class Instrumentor:
 # Usage example
 if __name__ == "__main__":
     instrumentor = Instrumentor()
-    instrumentor.instrument_assertion("task3results/assertions.py", "func", 6)
-    instrumentor.instrument_assertion("task3results/assertions.py", "func2", 10)
+    instrumentor.instrument_assertion("task3results/assertions.py", "func", 7)
