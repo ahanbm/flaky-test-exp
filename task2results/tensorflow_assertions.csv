@@ -1,0 +1,26 @@
+filepath,testclass,testname,assertion type,line number,assert string
+task2results/tensor2tensor-master/tensor2tensor/utils/test_utils_test.py,test_run_in_graph_and_eager_modes,test_run_in_graph_and_eager_modes,approximate,43,"self.assertEqual(len(l), 4)"
+task2results/tensor2tensor-master/tensor2tensor/utils/test_utils_test.py,test_run_in_graph_and_eager_modes,test_run_in_graph_and_eager_modes,approximate,44,"self.assertEqual(set(l), {('with_brackets', 'graph'), ('with_brackets', 'eager'), ('without_brackets', 'graph'), ('without_brackets', 'eager')})"
+task2results/tensor2tensor-master/tensor2tensor/utils/test_utils_test.py,test_run_in_graph_and_eager_modes_setup_in_same_mode,test_run_in_graph_and_eager_modes_setup_in_same_mode,approximate,71,"self.assertEqual(modes[0:2], ['setup_eager', 'run_eager'])"
+task2results/tensor2tensor-master/tensor2tensor/utils/test_utils_test.py,test_run_in_graph_and_eager_modes_setup_in_same_mode,test_run_in_graph_and_eager_modes_setup_in_same_mode,approximate,72,"self.assertEqual(modes[2:], ['setup_graph', 'run_graph'])"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModel,TestVideoModel,approximate,149,"self.assertEqual(output.shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelInfer,TestVideoModelInfer,approximate,165,"self.assertTrue(isinstance(output, dict))"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelInfer,TestVideoModelInfer,approximate,166,self.assertTrue(('outputs' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelInfer,TestVideoModelInfer,approximate,167,self.assertTrue(('scores' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelInfer,TestVideoModelInfer,approximate,168,self.assertTrue(('targets' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelInfer,TestVideoModelInfer,approximate,170,"self.assertEqual(output['targets'].shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActions,TestVideoModelWithActions,approximate,187,"self.assertEqual(output.shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionsInfer,TestVideoModelWithActionsInfer,approximate,203,"self.assertTrue(isinstance(output, dict))"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionsInfer,TestVideoModelWithActionsInfer,approximate,204,self.assertTrue(('outputs' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionsInfer,TestVideoModelWithActionsInfer,approximate,205,self.assertTrue(('scores' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionsInfer,TestVideoModelWithActionsInfer,approximate,206,self.assertTrue(('targets' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionsInfer,TestVideoModelWithActionsInfer,approximate,208,"self.assertEqual(output['targets'].shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewards,TestVideoModelWithActionAndRewards,approximate,226,"self.assertEqual(output.shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewards,TestVideoModelWithActionAndRewards,approximate,231,"self.assertEqual(output.shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,248,"self.assertTrue(isinstance(output, dict))"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,249,self.assertTrue(('outputs' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,250,self.assertTrue(('scores' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,251,self.assertTrue(('targets' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,252,self.assertTrue(('target_reward' in output.keys()))
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,254,"self.assertEqual(output['targets'].shape, expected_shape)"
+task2results/tensor2tensor-master/tensor2tensor/models/video/tests_utils.py,TestVideoModelWithActionAndRewardsInfer,TestVideoModelWithActionAndRewardsInfer,approximate,256,"self.assertEqual(output['target_reward'].shape, expected_shape)"
