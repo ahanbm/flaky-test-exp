@@ -26,7 +26,7 @@ class Instrumentor:
                         test_function.body.insert(test_function.body.index(statement), log_statement)
                     break
 
-        with open(test_file[:-3] + "_instrumented.py", 'w') as output_file:
+        with open(test_file[:-3] + "_logged.py", 'w') as output_file:
             output_file.write(astunparse.unparse(tree))
 
     def extract_variables(self, node):
@@ -39,4 +39,4 @@ class Instrumentor:
 # Usage example
 if __name__ == "__main__":
     instrumentor = Instrumentor()
-    instrumentor.instrument_assertion("task3results/assertions.py", "func", 8)
+    instrumentor.instrument_assertion("task3results/assertions.py", "test_func", 8)
