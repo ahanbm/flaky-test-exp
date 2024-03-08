@@ -1,16 +1,17 @@
 
 import numpy as np
 
-def func():
-    x = 0.5
-    y = 0.6
-    assert (x < y)
+class Tests():
 
-def func2():
-    random_numbers = np.random.rand(5)
-    print('log>>>', np)
-    print('log>>>', random_numbers)
-    assert (np.sum(random_numbers) > 1.0)
+    def func(self):
+        x = 0.5
+        y = 0.6
+        assert (x < y)
+
+    def func2(self):
+        random_numbers = np.random.rand(5)
+        assert (np.sum(random_numbers) > 1.0)
 if (__name__ == '__main__'):
-    func()
-    func2()
+    Tester = Tests()
+    Tester.func()
+    Tester.func2()

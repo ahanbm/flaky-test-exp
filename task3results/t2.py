@@ -1,55 +1,101 @@
 import importlib.util
-import numpy as np
-import types
 import ast
+import astunparse
 
-def execute_test(file_name, test_name, assertion_line):
-    spec = importlib.util.spec_from_file_location(test_name, file_name)
-    test_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(test_module)
+class Instrumentor:
+    def numpy_used(self, stmt):
+        if isinstance(stmt, ast.Assign):
+            # Check if the value being assigned is a function call
+            if isinstance(stmt.value, ast.Call):
+                # Check if the function being called is from np.random
+                if isinstance(stmt.value.func, ast.Attribute):
+                    if isinstance(stmt.value.func.value, ast.Attribute):
+                        if stmt.value.func.value.attr == "random":
+                            return True
+        return False
+    
+    def find_parent_block(self, tree, node):
+        """
+        Find the parent block of a given node in the AST tree.
+        """
+        for item in ast.walk(tree):
+            if isinstance(item, ast.FunctionDef) and node in item.body:
+                return item  # Return the function definition as the parent block
+            elif isinstance(item, ast.ClassDef) and node in item.body:
+                return item  # Return the class definition as the parent block
+            elif isinstance(item, ast.Module) and node in item.body:
+                return item
+        
+        parent_block = None
+        for item in ast.walk(tree):
+            if isinstance(item, (ast.FunctionDef, ast.ClassDef)) and node in item.body:
+                parent_block = item  # Update the parent block if the node is found inside a function or class
+            elif isinstance(item, ast.Import) or isinstance(item, ast.ImportFrom):
+                # Stop traversing further if an import statement is encountered
+                break
+        return parent_block
 
-    # Inject seed-setting logic at the beginning of the test function
-    test_code = test_module.__dict__.get(test_name)
-    if test_code:
-        test_code_ast = test_code.__code__
-        test_module.__dict__[test_name] = inject_seed_setting(test_code_ast, test_module)
-    
-    test_module.test_function()
+    def instrument_assertion(self, test_file, test_name):
+        with open(test_file, 'r') as file:
+            tree = ast.parse(file.read())
 
-def inject_seed_setting(test_code_ast, test_module):
-    # Construct AST node for setting random seed
-    seed_setting_code = ast.parse("np.random.seed(42)")
-    
-    # Add the seed-setting code to the beginning of the test function
-    new_test_body = [seed_setting_code] + list(test_code_ast.co_consts)
-    
-    # Create a new code object with modified test body
-    new_code = types.CodeType(
-        test_code_ast.co_argcount,
-        test_code_ast.co_kwonlyargcount,
-        test_code_ast.co_nlocals,
-        test_code_ast.co_stacksize,
-        test_code_ast.co_flags,
-        b''.join(new_test_body),
-        test_code_ast.co_consts,
-        test_code_ast.co_names,
-        test_code_ast.co_varnames,
-        test_code_ast.co_filename,
-        test_code_ast.co_name,
-        test_code_ast.co_firstlineno,
-        test_code_ast.co_lnotab,
-        test_code_ast.co_freevars,
-        test_code_ast.co_cellvars
-    )
-    
-    # Create a new function object with modified code object
-    new_function = types.FunctionType(
-        new_code,
-        test_module.__dict__,
-        "test_name"
-    )
-    
-    return new_function
+        # Find the specified test function/method
+        test_function = None
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == test_name:
+                test_function = node
+                break
+        
+        #Numpy random.seed
+        #TensorFlow random.set_seed
+        #TensorFlow set_random_seed
+        #TensorFlow random.set_random_seed
+        #TensorFlow compat.v1.random.set_random_seed
+        #PyTorch manual_seed
+        #PyTorch cuda.manual_seed_all
+        #PyTorch seed
+        #Random (Python) seed
+
+        randoms = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        if test_function:
+            # Find the specified assertion line within the test function
+            for statement in test_function.body:
+                if (self.numpy_used(statement)):
+                    randoms[0] = 1
+
+            if randoms[0] == 1:
+                seed_statement = ast.Expr(
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Attribute(
+                                value=ast.Name(id='np', ctx=ast.Load()),
+                                attr='random',
+                                ctx=ast.Load()
+                            ),
+                            attr='seed',
+                            ctx=ast.Load()
+                        ),
+                        args=[ast.Constant(value=42, kind=None)],
+                        keywords=[]
+                    )
+                )
+                
+                (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
+
+        # Write the modified code to a new file
+        with open(test_file[:-3] + "_instrumented2.py", 'w') as output_file:
+            output_file.write(astunparse.unparse(tree))
+
+    def execute_test(self, file_name, test_name):
+        spec = importlib.util.spec_from_file_location(test_name, file_name)
+        test_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(test_module)
+
+        tester = test_module.Tests()
+        getattr(tester, test_name)()
 
 if __name__ == "__main__":
-    execute_test("assertions.py", "func2", 10)
+    instrumentor = Instrumentor()
+    instrumentor.instrument_assertion("task3results/assertions.py", "func2")
+    instrumentor.execute_test("task3results/assertions.py", "func2")
