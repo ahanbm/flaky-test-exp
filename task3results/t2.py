@@ -92,8 +92,8 @@ class Instrumentor:
         test_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(test_module)
 
-        tester = test_module.Tests()
-        getattr(tester, test_name)()
+        test_function = getattr(test_module, test_name)
+        test_function()
 
 if __name__ == "__main__":
     instrumentor = Instrumentor()

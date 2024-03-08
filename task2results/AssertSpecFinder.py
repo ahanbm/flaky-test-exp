@@ -9,42 +9,39 @@ class AssertSpecFinder:
         self.assertions = []
 
     def analyze_file(self, filepath):
-        print("Checkpoint 1")
         with open(filepath, 'r') as file:
-            print("Checkpoint 2")
             tree = ast.parse(file.read())
             for node in ast.walk(tree):
-                print("Checkpoint 3")
                 if isinstance(node, ast.FunctionDef):
-                    print("Checkpoint 4")
                     for statement in node.body:
-                        print("Checkpoint 5")
-                        if isinstance(statement, ast.Assert):
-                            print("Checkpoint 6")
-                            if self.is_approx_assertion(statement):
-                                print("Checkpoint 7")
-                                assertion_string = astunparse.unparse(statement).strip()
-                                self.assertions.append({
-                                    'filepath': filepath,
-                                    'testclass': node.name if hasattr(node, 'name') else '',
-                                    'testname': node.name,
-                                    'assertion type': 'approximate',
-                                    'line number': statement.lineno,
-                                    'assert string': assertion_string
-                                })
+                        if self.is_approx_assertion(statement):
+                            assertion_string = astunparse.unparse(statement).strip()
+                            self.assertions.append({
+                                'filepath': filepath,
+                                'testclass': node.name if hasattr(node, 'name') else '',
+                                'testname': node.name,
+                                'assertion type': 'approximate',
+                                'line number': statement.lineno,
+                                'assert string': assertion_string
+                            })
 
     def is_approx_assertion(self, assert_node):
-        print("Checkpoint 1")
-        if isinstance(assert_node.test, ast.Call):
-            print("Checkpoint 2")
-            if isinstance(assert_node.test.func, ast.Attribute):
-                print("Checkpoint 3")
-                if isinstance(assert_node.test.func.value, ast.Name) and assert_node.test.func.value.id == 'self':
-                    print("Checkpoint 4")
-                    if isinstance(assert_node.test.func.attr, str) and assert_node.test.func.attr == 'assertTrue':
-                        print("Checkpoint 5")
+        if isinstance(assert_node, ast.Assert):
+            if isinstance(assert_node.test, ast.Compare):
+                for op in assert_node.test.ops:
+                    if not isinstance(op, ast.Eq): 
                         return True
-        return True
+        
+        if isinstance(assert_node, ast.Expr):
+            if isinstance(assert_node.value, ast.Call):
+                call_node = assert_node.value
+                if isinstance(call_node.func, ast.Attribute):
+                    attr_node = call_node.func
+                    if isinstance(attr_node.value, ast.Name) and attr_node.value.id == 'self':
+                        if isinstance(attr_node.attr, str) and attr_node.attr.startswith('assert'):
+                            return True
+        return False
+
 
     def find_assertions(self, directory):
         if not os.path.isdir(directory):
@@ -53,7 +50,7 @@ class AssertSpecFinder:
         
         for root, _, files in os.walk(directory):
             for file in files:
-                if file.endswith('.py'):
+                if file.startswith('test') and file.endswith('.py'):
                     file_path = os.path.join(root, file)
                     if not os.path.isfile(file_path):
                         print(f"Warning: '{file_path}' is not a regular file.")
@@ -70,7 +67,14 @@ class AssertSpecFinder:
                 writer.writerow(assertion_data)
 
 if __name__ == "__main__":
-    finder = AssertSpecFinder("example")
-    finder.find_assertions("task2results/qiskit-aqua-main/test/aqua/")
+    finder = AssertSpecFinder("qiskit")
+    finder.find_assertions("task2results/qiskit-aqua-main/test/")
+    finder.output_to_csv()
 
+    finder = AssertSpecFinder("tensorflow")
+    finder.find_assertions("task2results/tensor2tensor-master/")
+    finder.output_to_csv()
+
+    finder = AssertSpecFinder("pytorch")
+    finder.find_assertions("task2results/vision-main/test")
     finder.output_to_csv()
