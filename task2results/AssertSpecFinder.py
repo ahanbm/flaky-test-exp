@@ -16,33 +16,54 @@ class AssertSpecFinder:
                     for statement in node.body:
                         assert_type = self.is_approx_assertion(statement)
                         if self.is_valid(assert_type):
-                                assertion_string = astunparse.unparse(statement).strip()
-                                self.assertions.append({
-                                    'filepath': filepath,
-                                    'testclass': node.name if hasattr(node, 'name') else '',
-                                    'testname': node.name,
-                                    'assertion type': assert_type,
-                                    'line number': statement.lineno,
-                                    'assert string': assertion_string
-                                })
+                            if (assert_type == "assertEqual"):
+                                print(self.is_valid("assertEqual"))
+
+                            assertion_string = astunparse.unparse(statement).strip()
+                            self.assertions.append({
+                                'filepath': filepath,
+                                'testclass': node.name if hasattr(node, 'name') else '',
+                                'testname': node.name,
+                                'assertion type': assert_type,
+                                'line number': statement.lineno,
+                                'assert string': assertion_string
+                            })
 
     def is_valid(self, assert_type):
-        return assert_type and (assert_type == "assert expr < | > | <= | >= threshold" or 
-                assert_type == "assertTrue" or assert_type == "assertFalse" or 
-                assert_type == "assert_almost_equal" or assert_type == "assertGreater" or 
-                assert_type == "assertGreaterEqual" or assert_type == "assertLess" or 
-                assert_type == "assertLessEqual" or assert_type == "assertNotAlmostEqual" or 
-                assert_type == "assertNotEqual" or assert_type == "assertNotRegex" or 
-                assert_type == "assertRegex" or assert_type == "assertApproxRegex" or
-                assert_type == "assert_approx_equal", assert_type == "assert_array_almost_equal" or
-                assert_type == "assert_all_close" or assert_type == "assert_array_less" or
-                assert_type == "assertAllClose")
+        if not assert_type:
+            return False
+
+        return (
+            assert_type == "assert expr < | > | <= | >= threshold" or
+            assert_type == "assertTrue" or
+            assert_type == "assertFalse" or
+            assert_type == "assert_almost_equal" or
+            assert_type == "assertGreater" or
+            assert_type == "assertGreaterEqual" or
+            assert_type == "assertLess" or
+            assert_type == "assertLessEqual" or
+            assert_type == "assertNotAlmostEqual" or
+            assert_type == "assertNotEqual" or
+            assert_type == "assertNotRegex" or
+            assert_type == "assertRegex" or
+            assert_type == "assertApproxRegex" or
+            assert_type == "assert_approx_equal" or
+            assert_type == "assert_array_almost_equal" or
+            assert_type == "assert_all_close" or
+            assert_type == "assert_array_less" or
+            assert_type == "assertAllClose"
+        )
 
     def is_approx_assertion(self, assert_node):
         if isinstance(assert_node, ast.Assert):
             if isinstance(assert_node.test, ast.Compare):
                 for op in assert_node.test.ops:
-                    if not isinstance(op, ast.Eq): 
+                    if (
+                        isinstance(op, ast.Lt) or 
+                        isinstance(op, ast.Gt) or 
+                        isinstance(op, ast.LtE) or 
+                        isinstance(op, ast.GtE)
+                    ): 
                         return "assert expr < | > | <= | >= threshold"
         
         if isinstance(assert_node, ast.Expr):
@@ -50,9 +71,8 @@ class AssertSpecFinder:
                 call_node = assert_node.value
                 if isinstance(call_node.func, ast.Attribute):
                     attr_node = call_node.func
-                    if isinstance(attr_node.value, ast.Name) and attr_node.value.id == 'self':
-                        if isinstance(attr_node.attr, str) and attr_node.attr.startswith('assert'):
-                            return attr_node.attr
+                    if isinstance(attr_node.attr, str) and attr_node.attr.startswith('assert'):
+                        return attr_node.attr
                         
         elif isinstance(assert_node, ast.FunctionDef):
             for stmt in assert_node.body:

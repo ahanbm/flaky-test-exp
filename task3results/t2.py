@@ -3,16 +3,61 @@ import ast
 import astunparse
 
 class Inst:
-    def numpy_used(self, stmt):
+    def detect_alias(self, tree, module_name):
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == module_name:
+                        if alias.asname:
+                            return alias.asname
+
+        return module_name
+
+    def is_assignment(self, stmt):
         if isinstance(stmt, ast.Assign):
-            # Check if the value being assigned is a function call
             if isinstance(stmt.value, ast.Call):
-                # Check if the function being called is from np.random
                 if isinstance(stmt.value.func, ast.Attribute):
-                    if isinstance(stmt.value.func.value, ast.Attribute):
-                        if stmt.value.func.value.attr == "random":
-                            return True
+                    return True
+        
         return False
+
+    def numpy_used(self, stmt, alias, library):
+        if self.is_assignment(stmt):
+            if isinstance(stmt.value.func.value, ast.Attribute):
+                if stmt.value.func.value.attr == library:
+                    if isinstance(stmt.value.func.value.value, ast.Name):
+                        if stmt.value.func.value.value.id == alias:
+                            return True
+                            
+        return False
+    
+    def tensorflow_used(self, stmt, alias, library):
+        if self.is_assignment(stmt):
+            if isinstance(stmt.value.func.value, ast.Attribute):
+                if stmt.value.func.value.attr == library:
+                    if isinstance(stmt.value.func.value.value, ast.Name):
+                        if stmt.value.func.value.value.id == alias:
+                            return True
+                            
+        return False
+
+    def pytorch_used(self, stmt, alias, library):
+        if self.is_assignment(stmt):
+            if stmt.value.func.attr[:4] == library:
+                if isinstance(stmt.value.func.value, ast.Name):
+                    if stmt.value.func.value.id == alias:
+                        return True
+
+        return False
+
+    def random_used(self, stmt, alias, library):
+        if self.is_assignment(stmt):
+            if isinstance(stmt.value.func.value, ast.Name):
+                if stmt.value.func.value.id == alias:
+                    return True
+
+        return False
+
     
     def find_parent_block(self, tree, node):
         """
@@ -20,18 +65,17 @@ class Inst:
         """
         for item in ast.walk(tree):
             if isinstance(item, ast.FunctionDef) and node in item.body:
-                return item  # Return the function definition as the parent block
+                return item
             elif isinstance(item, ast.ClassDef) and node in item.body:
-                return item  # Return the class definition as the parent block
+                return item
             elif isinstance(item, ast.Module) and node in item.body:
                 return item
         
         parent_block = None
         for item in ast.walk(tree):
             if isinstance(item, (ast.FunctionDef, ast.ClassDef)) and node in item.body:
-                parent_block = item  # Update the parent block if the node is found inside a function or class
+                parent_block = item
             elif isinstance(item, ast.Import) or isinstance(item, ast.ImportFrom):
-                # Stop traversing further if an import statement is encountered
                 break
         return parent_block
 
@@ -39,51 +83,61 @@ class Inst:
         with open(test_file, 'r') as file:
             tree = ast.parse(file.read())
 
-        # Find the specified test function/method
         test_function = None
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == test_name:
                 test_function = node
                 break
-        
-        #Numpy random.seed
-        #TensorFlow random.set_seed
-        #TensorFlow set_random_seed
-        #TensorFlow random.set_random_seed
-        #TensorFlow compat.v1.random.set_random_seed
-        #PyTorch manual_seed
-        #PyTorch cuda.manual_seed_all
-        #PyTorch seed
-        #Random (Python) seed
-
-        randoms = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         if test_function:
-            # Find the specified assertion line within the test function
-            for statement in test_function.body:
-                if (self.numpy_used(statement)):
-                    randoms[0] = 1
+            #Numpy random.seed
+            #TensorFlow random.set_seed
+            #PyTorch manual_seed
+            #Random (Python) seed
+            random_used = [False, False, False, False]
+            seeds = [42, 42, 42, 42]
+            aliases = ["numpy", "tensorflow", "torch", "random"]
+            random_lib = ["random", "random", "rand", ""]
+            seed_setter = ["seed", "set_seed", "manual_seed", "seed"]
+            usage_tester = [self.numpy_used, self.tensorflow_used, 
+                    self.pytorch_used, self.random_used]
 
-            if randoms[0] == 1:
-                seed_statement = ast.Expr(
-                    value=ast.Call(
-                        func=ast.Attribute(
-                            value=ast.Attribute(
-                                value=ast.Name(id='np', ctx=ast.Load()),
-                                attr='random',
+            for i in range(len(aliases)):
+                aliases[i] = self.detect_alias(tree, aliases[i])
+
+            for statement in test_function.body:
+                for i in range(len(random_used)):
+                    if random_used[i]:
+                        continue
+
+                    if (usage_tester[i](statement, aliases[i], random_lib[i])):
+                        random_used[i] = True
+
+            for i in range(len(random_used)):
+                if random_used[i]:
+                    value = ast.Attribute(
+                        value=ast.Name(id=aliases[i], ctx=ast.Load()),
+                        attr='random',
+                        ctx=ast.Load()
+                    )
+
+                    if i == 2 or i == 3:
+                        value = ast.Name(id=aliases[i], ctx=ast.Load())
+                    
+                    seed_statement = ast.Expr(
+                        value=ast.Call(
+                            func=ast.Attribute(
+                                value=value,
+                                attr=seed_setter[i],
                                 ctx=ast.Load()
                             ),
-                            attr='seed',
-                            ctx=ast.Load()
-                        ),
-                        args=[ast.Constant(value=42, kind=None)],
-                        keywords=[]
+                            args=[ast.Constant(value=seeds[i], kind=None)],
+                            keywords=[]
+                        )
                     )
-                )
-                
-                (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
+                    
+                    (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
 
-        # Write the modified code to a new file
         with open(test_file[:-9] + "final.py", 'w') as output_file:
             output_file.write(astunparse.unparse(tree))
 
@@ -98,8 +152,3 @@ class Inst:
             test_function(test_instance)
         else:
             print(f"Error: Test function '{test_name}' not found in module '{file_name}'.")
-
-if __name__ == "__main__":
-    instrumentor = Inst()
-    instrumentor.instrument_assertion("task3results/assertions_logged.py", "test_func")
-    instrumentor.execute_test("task3results/assertions_logged.py", "test_func")
