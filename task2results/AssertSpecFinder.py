@@ -1,7 +1,6 @@
 import os
 import ast
 import csv
-import astunparse
 
 class AssertSpecFinder:
     def __init__(self, project_name):
@@ -19,7 +18,7 @@ class AssertSpecFinder:
                             if (assert_type == "assertEqual"):
                                 print(self.is_valid("assertEqual"))
 
-                            assertion_string = astunparse.unparse(statement).strip()
+                            assertion_string = ast.unparse(statement).strip()
                             self.assertions.append({
                                 'filepath': filepath,
                                 'testclass': node.name if hasattr(node, 'name') else '',

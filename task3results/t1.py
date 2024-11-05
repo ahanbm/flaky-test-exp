@@ -1,5 +1,4 @@
 import ast
-import astunparse
 
 class Inst:
     def instrument_assertion(self, test_file, test_name, assertion_line = None):
@@ -41,14 +40,18 @@ class Inst:
                 test_function.body.insert(index + 1, right_statement)
 
         with open(test_file[:-3] + "_logged.py", 'w') as output_file:
-            output_file.write(astunparse.unparse(tree))
+            output_file.write(ast.unparse(tree))
 
     def assess_approx_assertion(self, assert_node):
         if isinstance(assert_node, ast.Assert):
             if isinstance(assert_node.test, ast.Compare):
                 for op in assert_node.test.ops:
-                    if not isinstance(op, ast.Eq):
-                        print (ast.dump(assert_node, indent=4))
+                    if (
+                        isinstance(op, ast.Lt) or 
+                        isinstance(op, ast.Gt) or 
+                        isinstance(op, ast.LtE) or 
+                        isinstance(op, ast.GtE)
+                    ): 
                         return assert_node.test.left, assert_node.test.comparators[0]
         
         if isinstance(assert_node, ast.Expr):

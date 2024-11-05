@@ -1,6 +1,5 @@
 import importlib.util
 import ast
-import astunparse
 
 class Inst:
     def detect_alias(self, tree, module_name):
@@ -139,16 +138,4 @@ class Inst:
                     (self.find_parent_block(tree, test_function)).body.insert(0, seed_statement)
 
         with open(test_file[:-9] + "final.py", 'w') as output_file:
-            output_file.write(astunparse.unparse(tree))
-
-    def execute_test(self, file_name, test_name):
-        spec = importlib.util.spec_from_file_location(test_name, file_name)
-        test_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(test_module)
-
-        test_function = getattr(test_module.Tests, test_name, None)
-        if test_function is not None and callable(test_function):
-            test_instance = test_module.Tests()
-            test_function(test_instance)
-        else:
-            print(f"Error: Test function '{test_name}' not found in module '{file_name}'.")
+            output_file.write(ast.unparse(tree))

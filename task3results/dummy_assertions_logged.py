@@ -1,4 +1,3 @@
-
 import numpy as np
 import unittest
 import tensorflow as tf
@@ -12,7 +11,7 @@ class Tests(unittest.TestCase):
         y = 0.6
         print('log>>>', x)
         print('log>>>', y)
-        assert (x <= y)
+        assert x <= y
         random_numbers = np.random.rand(5)
         print('log>>>', np.sum(random_numbers))
         print('log>>>', 1.0)
@@ -40,5 +39,5 @@ class Tests(unittest.TestCase):
         print('log>>>', x)
         print('log>>>', y)
         self.assertAlmostEqual(x, y, delta=0.2, msg='Expected x and y to be approximately equal within a delta of 0.2')
-if (__name__ == '__main__'):
+if __name__ == '__main__':
     unittest.main()
